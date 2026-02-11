@@ -23,8 +23,28 @@ export type MentionInfo = {
 };
 
 /**
+ * Check whether an ID looks like a valid Teams user/bot identifier.
+ * Accepts:
+ * - Bot Framework IDs: "28:xxx..." or "29:xxx..."
+ * - AAD object IDs (UUIDs): "d5318c29-33ac-4e6b-bd42-57b8b793908f"
+ *
+ * This prevents false positives from text like `@[表示名](ユーザーID)`
+ * that appears in code snippets or documentation within messages.
+ */
+const TEAMS_ID_PATTERN =
+  /^(?:\d+:[a-f0-9-]+|[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})$/i;
+
+function isValidTeamsId(id: string): boolean {
+  return TEAMS_ID_PATTERN.test(id);
+}
+
+/**
  * Parse mentions from text in the format @[Name](id).
  * Example: "Hello @[John Doe](28:xxx-yyy-zzz)!"
+ *
+ * Only matches where the id looks like a real Teams user/bot ID are treated
+ * as mentions. This avoids false positives from documentation or code samples
+ * embedded in the message (e.g. `@[表示名](ユーザーID)` in backticks).
  *
  * Returns both the formatted text with <at> tags and the entities array.
  */
@@ -35,15 +55,22 @@ export function parseMentions(text: string): {
   const mentionPattern = /@\[([^\]]+)\]\(([^)]+)\)/g;
   const entities: MentionEntity[] = [];
 
-  // Replace @[Name](id) with <at>Name</at> and collect entities
+  // Replace @[Name](id) with <at>Name</at> only for valid Teams IDs
   const formattedText = text.replace(mentionPattern, (match, name, id) => {
+    const trimmedId = id.trim();
+
+    // Skip matches where the id doesn't look like a real Teams identifier
+    if (!isValidTeamsId(trimmedId)) {
+      return match;
+    }
+
     const trimmedName = name.trim();
     const mentionTag = `<at>${trimmedName}</at>`;
     entities.push({
       type: "mention",
       text: mentionTag,
       mentioned: {
-        id: id.trim(),
+        id: trimmedId,
         name: trimmedName,
       },
     });
