@@ -66,7 +66,7 @@ describe("parseMentions", () => {
 
     expect(result.entities[0]).toEqual({
       type: "mention",
-      text: "<at> John Doe </at>",
+      text: "<at>John Doe</at>",
       mentioned: {
         id: "28:xxx",
         name: "John Doe",

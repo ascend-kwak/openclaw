@@ -37,15 +37,17 @@ export function parseMentions(text: string): {
 
   // Replace @[Name](id) with <at>Name</at> and collect entities
   const formattedText = text.replace(mentionPattern, (match, name, id) => {
+    const trimmedName = name.trim();
+    const mentionTag = `<at>${trimmedName}</at>`;
     entities.push({
       type: "mention",
-      text: `<at>${name}</at>`,
+      text: mentionTag,
       mentioned: {
         id: id.trim(),
-        name: name.trim(),
+        name: trimmedName,
       },
     });
-    return `<at>${name}</at>`;
+    return mentionTag;
   });
 
   return {
