@@ -18,6 +18,7 @@ import {
   uploadAndShareSharePoint,
 } from "./graph-upload.js";
 import { extractFilename, extractMessageId, getMimeType, isLocalPath } from "./media-helpers.js";
+import { parseMentions } from "./mentions.js";
 import { getMSTeamsRuntime } from "./runtime.js";
 
 /**
@@ -278,7 +279,14 @@ async function buildActivity(
   const activity: Record<string, unknown> = { type: "message" };
 
   if (msg.text) {
-    activity.text = msg.text;
+    // Parse mentions from text (format: @[Name](id))
+    const { text: formattedText, entities } = parseMentions(msg.text);
+    activity.text = formattedText;
+
+    // Add mention entities if any mentions were found
+    if (entities.length > 0) {
+      activity.entities = entities;
+    }
   }
 
   if (msg.mediaUrl) {
